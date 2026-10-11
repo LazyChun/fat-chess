@@ -16,11 +16,7 @@ import GameView from "./GameView";
 import Lobby from "./Lobby";
 import PreGameView from "./PreGameView";
 import SettingsView from "./SettingsView";
-import {
-  getChessState,
-  setChessState,
-  useChessState,
-} from "./chessStore";
+import { getChessState, setChessState, useChessState } from "./chessStore";
 import type { ChessUiState } from "./chessStore";
 
 interface Props {
@@ -32,23 +28,17 @@ interface Props {
 const LOBBY_EVENT = "fat-chess:lobby";
 
 /**
- * 更新本地 store 并广播完整配置快照到宿主事件总线。
- * 所有视图（menu/workbench/settings）监听该事件并同步自己的 store，
- * 从而保证左侧选中什么，右侧就显示什么。
+ * 更新本地 store 并把「变更字段」广播到宿主事件总线。
+ * 注意：只广播 patch 本身（而不是全量快照）——监听端把 game 字段视为
+ * 「切换棋种」信号并会退出当前对局，如果把未变更的 game 一起广播，
+ * 任何无关配置变更（难度/模式/模型）都会误杀进行中的对局。
  */
 export function syncConfig(
   sdk: FatNotesPluginSDK,
   patch: Partial<ChessUiState>,
 ): void {
-  const next = { ...getChessState(), ...patch };
   setChessState(patch);
-  sdk.events.emit(LOBBY_EVENT, {
-    game: next.game,
-    mode: next.mode,
-    goSize: next.goSize,
-    aiLevel: next.aiLevel,
-    modelId: next.modelId,
-  });
+  sdk.events.emit(LOBBY_EVENT, { ...patch });
 }
 
 const PluginView: React.FC<Props> = ({ sdk, view = "menu" }) => {
@@ -59,7 +49,10 @@ const PluginView: React.FC<Props> = ({ sdk, view = "menu" }) => {
   useEffect(() => {
     void (async () => {
       try {
-        const cfg = await sdk.config.get<{ modelId?: string; aiLevel?: number }>();
+        const cfg = await sdk.config.get<{
+          modelId?: string;
+          aiLevel?: number;
+        }>();
         setChessState({
           modelId: cfg?.modelId ?? null,
           aiLevel: typeof cfg?.aiLevel === "number" ? cfg.aiLevel : 2,
@@ -71,15 +64,19 @@ const PluginView: React.FC<Props> = ({ sdk, view = "menu" }) => {
     })();
   }, [sdk]);
 
-  // 订阅侧栏广播的配置快照，保持本实例 store 与全局一致。
+  // 订阅侧栏广播的配置变更，保持本实例 store 与全局一致。
   useEffect(() => {
     const d = sdk.events.on(LOBBY_EVENT, (payload) => {
       const p = (payload || {}) as Partial<ChessUiState>;
       const patch: Partial<ChessUiState> = {};
       if (typeof p.game === "string") {
-        patch.game = p.game;
-        // 切换棋种即退出当前对局，回到该棋种的对战页面
-        patch.session = null;
+        // 仅当棋种真正变化时才切换并退出当前对局；
+        // 同一棋种的配置同步不得清空进行中的 session。
+        if (p.game !== getChessState().game) {
+          patch.game = p.game;
+          // 切换棋种即退出当前对局，回到该棋种的对战页面
+          patch.session = null;
+        }
       }
       if (typeof p.mode === "string") patch.mode = p.mode;
       if (typeof p.goSize === "number") patch.goSize = p.goSize;
@@ -140,12 +137,7 @@ const PluginView: React.FC<Props> = ({ sdk, view = "menu" }) => {
     return <div style={{ padding: 24, color: "#999" }}>加载中…</div>;
   }
   return (
-    <Lobby
-      sdk={sdk}
-      api={api}
-      modelId={ui.modelId}
-      aiLevel={ui.aiLevel}
-    />
+    <Lobby sdk={sdk} api={api} modelId={ui.modelId} aiLevel={ui.aiLevel} />
   );
 };
 

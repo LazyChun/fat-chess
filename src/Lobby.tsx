@@ -68,9 +68,9 @@ const Lobby: React.FC<Props> = ({ sdk, api, modelId, aiLevel }) => {
     }
   }, [sdk]);
 
-  /** 选中棋种：切换棋种即退出当前对局，回到该棋种的对战页面（广播同步） */
+  /** 选中棋种：切换棋种即退出当前对局（由监听端在棋种变化时清空 session），广播同步 */
   const selectGame = (id: string) => {
-    syncConfig(sdk, { game: id, session: null });
+    syncConfig(sdk, { game: id });
   };
 
   const selectMode = (m: GameMode) => {

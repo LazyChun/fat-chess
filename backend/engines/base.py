@@ -93,14 +93,14 @@ class GameBase:
         if side != self.turn:
             raise GameError("未轮到该方走子")
         self.apply_move(move, side)
-        return self.state()
+        return self.get_state()
 
     def undo(self) -> Dict[str, Any]:
         if not self.history:
             raise GameError("没有可悔的棋")
         self.history.pop()
         self._replay()
-        return self.state()
+        return self.get_state()
 
     def _replay(self) -> None:
         """从空盘重放历史（悔棋后恢复状态）。各引擎 apply_move 自行写入 history。"""
@@ -115,7 +115,7 @@ class GameBase:
             raise GameError("对局已结束")
         self.winner = 1 - side
         self.ended_reason = "resign"
-        return self.state()
+        return self.get_state()
 
     def to_text(self) -> str:
         """面向大模型的纯文本局面描述（子类覆盖）。"""

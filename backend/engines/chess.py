@@ -395,7 +395,7 @@ class Chess(GameBase):
         self.reset(self.settings)
         for h in self.history:
             self.apply_move(h["move"], h["side"])
-        return self.state()
+        return self.get_state()
 
     def state(self) -> Dict[str, Any]:
         return {
