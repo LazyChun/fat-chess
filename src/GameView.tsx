@@ -111,7 +111,6 @@ const GameView: React.FC<Props> = ({
         if (session.mode === "ai" && st.winner === null) {
           const r = await api.aiMove(session.gameId, aiLevel);
           await applyState(r.state);
-          sdk.ui.toast.info(`AI 走了 ${r.move}`);
         }
       } catch (e) {
         sdk.ui.toast.error(errText(e));
@@ -119,7 +118,7 @@ const GameView: React.FC<Props> = ({
         setBusy(false);
       }
     },
-    [busy, state.winner, state.turn, session, api, aiLevel, applyState, sdk],
+    [busy, state.winner, state.turn, session, api, aiLevel, applyState],
   );
 
   const llmMove = useCallback(async () => {
@@ -130,9 +129,13 @@ const GameView: React.FC<Props> = ({
       const r = await api.llmMove(session.gameId, modelId || undefined);
       await applyState(r.state);
       if (r.moved) {
-        setLlmNote(r.content ? `大模型：${r.content.slice(0, 200)}` : "大模型已落子");
+        setLlmNote(
+          r.content ? `大模型：${r.content.slice(0, 200)}` : "大模型已落子",
+        );
       } else {
-        setLlmNote(`大模型未落子：${r.content ? r.content.slice(0, 200) : "无输出"}`);
+        setLlmNote(
+          `大模型未落子：${r.content ? r.content.slice(0, 200) : "无输出"}`,
+        );
       }
     } catch (e) {
       setLlmNote("");
@@ -205,10 +208,21 @@ const GameView: React.FC<Props> = ({
     } finally {
       setBusy(false);
     }
-  }, [busy, state.game, session.mode, aiLevel, modelId, api, onSessionChange, refreshMoves, sdk]);
+  }, [
+    busy,
+    state.game,
+    session.mode,
+    aiLevel,
+    modelId,
+    api,
+    onSessionChange,
+    refreshMoves,
+    sdk,
+  ]);
 
   const interactive =
-    !busy && state.winner === null &&
+    !busy &&
+    state.winner === null &&
     (session.mode === "pvp" || state.turn === humanSide);
 
   const statusText = useMemo(() => {
@@ -226,7 +240,12 @@ const GameView: React.FC<Props> = ({
     return `轮到 ${t}${modeText}`;
   }, [state.winner, state.turn, state.endedReason, sideNames, session.mode]);
 
-  const modeTag = session.mode === "ai" ? "人机" : session.mode === "llm" ? "对战大模型" : "双人";
+  const modeTag =
+    session.mode === "ai"
+      ? "人机"
+      : session.mode === "llm"
+        ? "对战大模型"
+        : "双人";
 
   return (
     <div style={{ padding: 12 }}>
@@ -234,13 +253,30 @@ const GameView: React.FC<Props> = ({
         <Typography.Text strong style={{ fontSize: 16 }}>
           {meta.emoji} {meta.name}
         </Typography.Text>
-        <Tag color={session.mode === "llm" ? "purple" : session.mode === "ai" ? "blue" : "green"}>
+        <Tag
+          color={
+            session.mode === "llm"
+              ? "purple"
+              : session.mode === "ai"
+                ? "blue"
+                : "green"
+          }
+        >
           {modeTag}
         </Tag>
-        {state.inCheck && state.inCheck[state.turn] ? <Tag color="red">将军！</Tag> : null}
+        {state.inCheck && state.inCheck[state.turn] ? (
+          <Tag color="red">将军！</Tag>
+        ) : null}
       </Space>
 
-      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-start" }}>
+      <div
+        style={{
+          display: "flex",
+          gap: 16,
+          flexWrap: "wrap",
+          alignItems: "flex-start",
+        }}
+      >
         <div
           style={{
             background: "#faf7f2",
@@ -260,13 +296,22 @@ const GameView: React.FC<Props> = ({
           />
         </div>
 
-        <div style={{ minWidth: 220, maxWidth: 320, display: "flex", flexDirection: "column", gap: 10 }}>
+        <div
+          style={{
+            minWidth: 220,
+            maxWidth: 320,
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+          }}
+        >
           <div
             style={{
               padding: "10px 12px",
               borderRadius: 8,
               background: state.winner !== null ? "#fff7e6" : "#f6ffed",
-              border: "1px solid " + (state.winner !== null ? "#ffd591" : "#b7eb8f"),
+              border:
+                "1px solid " + (state.winner !== null ? "#ffd591" : "#b7eb8f"),
             }}
           >
             <Typography.Text strong>{statusText}</Typography.Text>
@@ -275,23 +320,46 @@ const GameView: React.FC<Props> = ({
                 {llmTurn ? "轮到大模型走棋" : "轮到人类走棋"}
               </div>
             )}
-            {llmNote && <div style={{ marginTop: 6, fontSize: 12, color: "#722ed1" }}>{llmNote}</div>}
+            {llmNote && (
+              <div style={{ marginTop: 6, fontSize: 12, color: "#722ed1" }}>
+                {llmNote}
+              </div>
+            )}
           </div>
 
           {session.mode === "llm" && llmTurn && (
-            <Button type="primary" block loading={busy} onClick={() => void llmMove()} icon={<span>🤖</span>}>
+            <Button
+              type="primary"
+              block
+              loading={busy}
+              onClick={() => void llmMove()}
+              icon={<span>🤖</span>}
+            >
               让大模型走一步
             </Button>
           )}
 
           <Space wrap>
-            <Button size="small" onClick={() => void doUndo()} disabled={busy || state.history?.length === 0}>
+            <Button
+              size="small"
+              onClick={() => void doUndo()}
+              disabled={busy || state.history?.length === 0}
+            >
               悔棋
             </Button>
-            <Button size="small" danger onClick={() => void doResign()} disabled={busy || state.winner !== null}>
+            <Button
+              size="small"
+              danger
+              onClick={() => void doResign()}
+              disabled={busy || state.winner !== null}
+            >
               认输
             </Button>
-            <Button size="small" onClick={() => void doRestart()} disabled={busy}>
+            <Button
+              size="small"
+              onClick={() => void doRestart()}
+              disabled={busy}
+            >
               重开
             </Button>
           </Space>
@@ -302,7 +370,9 @@ const GameView: React.FC<Props> = ({
             </div>
           )}
           {meta.kind === "placement" && (
-            <div style={{ fontSize: 12, color: "#888" }}>点击空白交叉点落子。</div>
+            <div style={{ fontSize: 12, color: "#888" }}>
+              点击空白交叉点落子。
+            </div>
           )}
           {session.mode === "llm" && (
             <div style={{ fontSize: 12, color: "#888" }}>
