@@ -1,0 +1,30 @@
+{
+  "id": "99a32860-fe62-4c3c-9bc9-56943bbd83dd",
+  "name": "fat-chess",
+  "version": "0.1.0",
+  "description": "A FatNotes bespoke plugin.",
+  "entry": "remoteEntry.js",
+  "mfName": "plugin_99a32860_fe62_4c3c_9bc9_56943bbd83dd",
+  "container": "plugin_99a32860_fe62_4c3c_9bc9_56943bbd83dd",
+  "exposed": "./plugin",
+  "contributions": {
+    "activityBar": true,
+    "primarySidebar": true,
+    "panel": true,
+    "footer": true,
+    "routes": true,
+    "widgetTypes": true
+  },
+  "permissions": [
+    "auth:read",
+    "dataSource:read",
+    "query:execute",
+    "mutation:execute"
+  ],
+  "backend": {
+    "enabled": true,
+    "entry": "backend/main.py",
+    "requirements": "backend/requirements.txt",
+    "depsStrategy": "vendor"
+  }
+}
