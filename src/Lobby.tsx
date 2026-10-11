@@ -16,7 +16,7 @@ import {
 import type { FatNotesPluginSDK } from "fat-notes-sdk";
 import type { FatChessApi } from "./api";
 import { errText } from "./api";
-import { GAMES } from "./games";
+import { GAMES, AI_LEVEL_OPTIONS } from "./games";
 import { syncMcpTools, type ToolSyncReport } from "./mcp";
 import type { AiModelOption, GameMode } from "./types";
 import { useChessState } from "./chessStore";
@@ -128,11 +128,7 @@ const Lobby: React.FC<Props> = ({ sdk, api, modelId, aiLevel }) => {
             value={aiLevel}
             onChange={(lvl) => syncConfig(sdk, { aiLevel: lvl })}
             style={{ width: "100%", marginTop: 4 }}
-            options={[
-              { label: "入门", value: 1 },
-              { label: "进阶", value: 2 },
-              { label: "大师", value: 3 },
-            ]}
+            options={AI_LEVEL_OPTIONS}
           />
         </div>
       )}

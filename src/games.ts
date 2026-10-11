@@ -71,6 +71,19 @@ export const GAME_MAP: Record<string, GameMeta> = Object.fromEntries(
   GAMES.map((g) => [g.id, g]),
 );
 
+/** AI 难度等级名称（与人机对战 mode="ai" 的 aiLevel 对应） */
+export const AI_LEVEL_NAMES: Record<number, string> = {
+  1: "入门",
+  2: "进阶",
+  3: "大师",
+};
+
+/** 难度选项（供左侧栏与对局页共用，顺序即等级） */
+export const AI_LEVEL_OPTIONS = [1, 2, 3].map((lvl) => ({
+  label: AI_LEVEL_NAMES[lvl],
+  value: lvl,
+}));
+
 // ── 棋子字形 ────────────────────────────────────────────────
 
 export const XQ_PIECE_NAMES: Record<string, string> = {

@@ -7,7 +7,7 @@ import type { FatNotesPluginSDK } from "fat-notes-sdk";
 import type { FatChessApi } from "./api";
 import { errText } from "./api";
 import { GameBoard } from "./boards";
-import { GAME_MAP } from "./games";
+import { AI_LEVEL_NAMES, GAME_MAP } from "./games";
 import type { GameState, GameMode, SessionInfo } from "./types";
 
 interface Props {
@@ -264,6 +264,9 @@ const GameView: React.FC<Props> = ({
         >
           {modeTag}
         </Tag>
+        {session.mode === "ai" && (
+          <Tag color="cyan">难度：{AI_LEVEL_NAMES[aiLevel] || aiLevel}</Tag>
+        )}
         {state.inCheck && state.inCheck[state.turn] ? (
           <Tag color="red">将军！</Tag>
         ) : null}

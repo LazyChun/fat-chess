@@ -9,7 +9,7 @@ import type { FatNotesPluginSDK } from "fat-notes-sdk";
 import type { FatChessApi } from "./api";
 import { errText } from "./api";
 import { GameBoard } from "./boards";
-import { GAME_MAP } from "./games";
+import { AI_LEVEL_NAMES, GAME_MAP } from "./games";
 import type { GameMode, GameState, SessionInfo } from "./types";
 
 interface Props {
@@ -27,12 +27,6 @@ const MODE_NAMES: Record<GameMode, string> = {
   ai: "🤖 人机对战",
   llm: "🧠 对战大模型",
   pvp: "👥 本机双人",
-};
-
-const AI_LEVEL_NAMES: Record<number, string> = {
-  1: "入门",
-  2: "进阶",
-  3: "大师",
 };
 
 const PreGameView: React.FC<Props> = ({

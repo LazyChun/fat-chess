@@ -840,8 +840,8 @@ export const JunqiBoard: React.FC<BoardProps> = (props) => {
 export const PlacementBoard: React.FC<BoardProps> = (props) => {
   const { state, legalMoves, selected, interactive, onPlacementMove } = props;
   const n = state.size || state.rows || 19;
-  const cell = n > 9 ? 26 : 40;
-  const size = n * cell + 20;
+  const cell = n > 9 ? 38 : 44;
+  const size = (n - 1) * cell + 20;
 
   const legalSet = useMemo(() => new Set(legalMoves || []), [legalMoves]);
   const last = state.lastMove;
@@ -865,7 +865,7 @@ export const PlacementBoard: React.FC<BoardProps> = (props) => {
           width={(n - 1) * cell}
           height={(n - 1) * cell}
           fill="transparent"
-          {...gridHitProps(hitRef, n, n, interactive, click, "round")}
+          {...gridHitProps(hitRef, n - 1, n - 1, interactive, click, "round")}
         />
         <g style={DECOR_STYLE}>
           {Array.from({ length: n }, (_, i) => (

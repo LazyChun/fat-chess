@@ -39,6 +39,17 @@ export function syncConfig(
 ): void {
   setChessState(patch);
   sdk.events.emit(LOBBY_EVENT, { ...patch });
+  // 用户级配置（AI 难度 / 默认模型）持久化到宿主，重启插件后保留。
+  const persist: Record<string, unknown> = {};
+  if (typeof patch.aiLevel === "number") persist.aiLevel = patch.aiLevel;
+  if (typeof patch.modelId === "string" || patch.modelId === null) {
+    persist.modelId = patch.modelId;
+  }
+  if (Object.keys(persist).length > 0) {
+    void sdk.config.set(persist, { merge: true }).catch(() => {
+      /* 持久化失败不阻塞交互 */
+    });
+  }
 }
 
 const PluginView: React.FC<Props> = ({ sdk, view = "menu" }) => {

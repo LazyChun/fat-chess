@@ -19,6 +19,10 @@ from .jungle import DENS as _JUNGLE_DENS
 
 INF = 10 ** 9
 
+# 深度 >= 3 时，非根节点只展开按贪心排序后的前 N 个候选，
+# 把大师级的搜索复杂度控制在可接受范围（约 根*N^(depth-1)）。
+_SEARCH_WIDTH = 6
+
 # ---------------------------------------------------------------------------
 # 通用工具
 # ---------------------------------------------------------------------------
@@ -39,7 +43,8 @@ def _eval(game, side: int) -> float:
     return fn(game, side)
 
 
-def _search(game, depth: int, alpha: float, beta: float, side: int) -> float:
+def _search(game, depth: int, alpha: float, beta: float, side: int,
+            width: Optional[int] = None) -> float:
     if game.winner is not None:
         if game.winner == -1:
             return 0.0
@@ -69,12 +74,14 @@ def _search(game, depth: int, alpha: float, beta: float, side: int) -> float:
         return 0
 
     moves.sort(key=_mv_score, reverse=True)
+    if width is not None and len(moves) > width:
+        moves = moves[:width]
 
     best = -INF
     for m in moves:
         g2 = _clone(game)
         g2.make_move(m, side)
-        val = -_search(g2, depth - 1, -beta, -alpha, 1 - side)
+        val = -_search(g2, depth - 1, -beta, -alpha, 1 - side, width)
         if val > best:
             best = val
         if best > alpha:
@@ -90,22 +97,26 @@ def pick_move(game, moves: List[str], side: int, level: int = 1) -> str:
     level = max(1, min(3, int(level or 1)))
     depth_map = {
         "gomoku": {1: 1, 2: 2, 3: 3},
-        "go": {1: 0, 2: 0, 3: 0},          # 围棋用启发式，不走搜索
-        "xiangqi": {1: 1, 2: 2, 3: 2},
-        "chess": {1: 1, 2: 2, 3: 2},
+        "go": {1: 0, 2: 0, 3: 0},          # 围棋用分级启发式，不走搜索
+        "xiangqi": {1: 1, 2: 2, 3: 3},
+        "chess": {1: 1, 2: 2, 3: 3},
         "jungle": {1: 1, 2: 2, 3: 3},
-        "junqi": {1: 1, 2: 2, 3: 2},
+        "junqi": {1: 1, 2: 2, 3: 3},
     }
-    dmap = depth_map.get(game.GAME_ID, {1: 1, 2: 2, 3: 2})
+    dmap = depth_map.get(game.GAME_ID, {1: 1, 2: 2, 3: 3})
     depth = dmap.get(level, 1)
 
     if game.GAME_ID == "go":
-        return _go_heuristic(game, moves, side)
+        return _go_heuristic(game, moves, side, level)
 
     if depth <= 1 or len(moves) == 1:
         scored = [(m, _search(_clone_and_move(game, m, side), 0, -INF, INF, side))
                   for m in moves]
         scored.sort(key=lambda x: -x[1])
+        if level <= 1 and len(scored) > 1:
+            # 入门：只在前 40% 候选中随机，会做出欠考虑的走法
+            k = max(2, int(len(scored) * 0.4))
+            return random.choice([m for m, _ in scored[:k]])
         best_score = scored[0][1]
         best = [m for m, s in scored if s == best_score]
         return random.choice(best)
@@ -113,9 +124,11 @@ def pick_move(game, moves: List[str], side: int, level: int = 1) -> str:
     best_moves = []
     best_val = -INF
     alpha = -INF
+    # 大师（depth>=3）：深层剪枝，只展开排序后的前 N 个候选
+    width = _SEARCH_WIDTH if depth >= 3 else None
     for m in moves:
         g2 = _clone_and_move(game, m, side)
-        val = -_search(g2, depth - 1, -INF, -alpha, 1 - side)
+        val = -_search(g2, depth - 1, -INF, -alpha, 1 - side, width)
         if val > best_val:
             best_val = val
             best_moves = [m]
@@ -131,8 +144,12 @@ def _clone_and_move(game, move: str, side: int) -> Any:
     return g2
 
 
-def _go_heuristic(game, moves: List[str], side: int) -> str:
-    """围棋启发式：提子 > 保气 > 占角星位 > 随机。"""
+def _go_heuristic(game, moves: List[str], side: int, level: int) -> str:
+    """围棋分级启发式：
+    - 入门：启发式打分 + 随机扰动（在前 1/3 候选中随机，容易漏算）
+    - 进阶：确定性启发式（提子 > 保气 > 占角星位）
+    - 大师：在前 16 个启发式候选上做 1 层搜索，按子力/气/提子评估择优
+    """
     def score(m):
         s = 0
         r = ord(m[0]) - ord("a")
@@ -158,6 +175,20 @@ def _go_heuristic(game, moves: List[str], side: int) -> str:
 
     scored = [(m, score(m)) for m in moves]
     scored.sort(key=lambda x: -x[1])
+
+    if level <= 1:
+        k = max(1, len(scored) // 3)
+        return random.choice([m for m, _ in scored[:k]])
+
+    if level >= 3:
+        best_m, best_v = scored[0][0], -INF
+        for m, _ in scored[:16]:
+            g2 = _clone_and_move(game, m, side)
+            v = _go_eval(g2, side)
+            if v > best_v:
+                best_v, best_m = v, m
+        return best_m
+
     return scored[0][0]
 
 
