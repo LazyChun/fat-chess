@@ -234,6 +234,13 @@ export interface BlockTypeDef {
     maxH?: number;
   };
   /**
+   * 新建卡片时写入 options 的默认值（宿主 getDefaultBlockConf 未命中
+   * 内置类型时使用，调用方会深拷贝）。
+   */
+  defaultOptions?: Record<string, unknown>;
+  /** 新建卡片时合并进 commonOptions 的默认值，调用方会深拷贝。 */
+  defaultCommonOptions?: Record<string, unknown>;
+  /**
    * Event type ids shown in the event editor.
    * Built-in ids: relate, drill, update, filter, delete, linkTo.
    */

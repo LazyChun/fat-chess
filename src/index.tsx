@@ -10,6 +10,9 @@ import React from "react";
 import type { Disposable, FatNotesPluginSDK } from "fat-notes-sdk";
 import PluginView from "./PluginView";
 import { syncMcpTools } from "./mcp";
+import { CHESS_GAME_ICON_URL } from "./assets/chessIcon";
+import GameSwitcherBlock from "./GameSwitcherBlock";
+import GameSwitcherDisplayConfig from "./GameSwitcherDisplayConfig";
 
 const disposables: Disposable[] = [];
 
@@ -85,6 +88,57 @@ export async function activate(sdk: FatNotesPluginSDK): Promise<void> {
       return report;
     }),
   );
+
+  // 6. 仪表盘组件：「棋游」卡片（参考 fat-tools 的 blockType 注册方式）。
+  //    挂在「其他(other)」分类下，卡片内可在多个棋种间切换并直接对局：
+  //    参与切换的棋种 / 默认棋种 / 切换按钮显隐 / 按钮组或下拉框 / 顶或底，
+  //    均由右侧「显示配置」面板（registerBlockDisplayConfig）配置。
+  //    用 try/catch 兜底：宿主版本缺少该能力时不影响其余激活流程。
+  try {
+    disposables.push(
+      sdk.contributions.registerBlockType({
+        type: "fat-chess.game",
+        title: "棋游",
+        iconUrl: CHESS_GAME_ICON_URL,
+        category: "other",
+        index: 100,
+        defaultSize: { w: 6, h: 30, minW: 4, minH: 16 },
+        // 新建卡片写入 options 的默认值（宿主会深拷贝）
+        defaultOptions: {
+          gameSwitcher: {
+            games: ["xiangqi", "gomoku", "go", "chess"],
+            defaultGame: "xiangqi",
+            showSwitch: true,
+            switchStyle: "segmented",
+            switchPosition: "top",
+          },
+        },
+        render: (props) =>
+          React.createElement(GameSwitcherBlock, {
+            config: props.config,
+            inConfig: props.inConfig,
+            sdk,
+          }),
+      }),
+    );
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.warn("[fat-chess] 注册「棋游」仪表盘组件失败：", e);
+  }
+
+  // 6.5 「棋游」卡片的显示配置面板（组件配置抽屉 > 显示配置）
+  try {
+    disposables.push(
+      sdk.contributions.registerBlockDisplayConfig({
+        id: "fat-chess.game.config",
+        blockType: "fat-chess.game",
+        render: () => React.createElement(GameSwitcherDisplayConfig, { sdk }),
+      }),
+    );
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.warn("[fat-chess] 注册「棋游」显示配置面板失败：", e);
+  }
 
   // 7. 选中 fat-chess 时隐藏次侧栏（聊天）与底部面板，给棋盘更大空间。
   let hideSecondarySidebarDisposable: Disposable | null = null;
