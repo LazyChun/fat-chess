@@ -8,8 +8,9 @@
  */
 import React from "react";
 import type { Disposable, FatNotesPluginSDK } from "fat-notes-sdk";
-import PluginView from "./PluginView";
+import PluginView, { syncConfig } from "./PluginView";
 import { syncMcpTools } from "./mcp";
+import { GAMES } from "./games";
 import { CHESS_GAME_ICON_URL } from "./assets/chessIcon";
 import GameSwitcherBlock from "./GameSwitcherBlock";
 import GameSwitcherDisplayConfig from "./GameSwitcherDisplayConfig";
@@ -17,6 +18,13 @@ import GameSwitcherDisplayConfig from "./GameSwitcherDisplayConfig";
 const disposables: Disposable[] = [];
 
 const FAT_CHESS_ACTIVITY_KEY = "bespoke:fat-chess.main";
+
+/** 用棋种 emoji 生成搜索结果图标组件 */
+const emojiIcon = (emoji: string) => {
+  const Icon: React.FC<{ style?: React.CSSProperties }> = ({ style }) =>
+    React.createElement("span", { style }, emoji);
+  return Icon;
+};
 
 /** 从 Redux 里取当前激活的活动菜单键（与 fat-stock 相同写法）。 */
 const selectActivityMenuKey = (state: unknown): string | undefined => {
@@ -83,7 +91,9 @@ export async function activate(sdk: FatNotesPluginSDK): Promise<void> {
       if (!report.failed.length) {
         sdk.ui.toast.success(`已同步 ${report.ok} 个下棋 MCP 工具`);
       } else {
-        sdk.ui.toast.warn(`同步完成：成功 ${report.ok}，失败 ${report.failed.length}`);
+        sdk.ui.toast.warn(
+          `同步完成：成功 ${report.ok}，失败 ${report.failed.length}`,
+        );
       }
       return report;
     }),
@@ -138,6 +148,34 @@ export async function activate(sdk: FatNotesPluginSDK): Promise<void> {
   } catch (e) {
     // eslint-disable-next-line no-console
     console.warn("[fat-chess] 注册「棋游」显示配置面板失败：", e);
+  }
+
+  // 6.6 全局搜索注册：每个棋种注册为一个搜索项（宿主全局搜索可直达）。
+  //     用 try/catch 兜底：宿主版本缺少该能力时不影响其余激活流程。
+  try {
+    disposables.push(
+      sdk.contributions.registerSearchProvider({
+        id: "fat-chess.search",
+        name: "fat-chess 棋类游戏",
+        items: GAMES.map((g) => ({
+          id: g.id,
+          title: g.name,
+          desc: g.desc,
+          icon: emojiIcon(g.emoji),
+          // 关键词：棋种 id 与宣传语（"连五即胜"等中文短句）
+          keywords: [g.id, g.tagline],
+          tag: "棋类",
+          activityId: "fat-chess.main",
+          onSelect: () => {
+            // 与左侧菜单 selectGame 相同：广播棋种切换，工作区随之渲染对应棋种
+            syncConfig(sdk, { game: g.id });
+          },
+        })),
+      }),
+    );
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.warn("[fat-chess] 注册「全局搜索」失败：", e);
   }
 
   // 7. 选中 fat-chess 时隐藏次侧栏（聊天）与底部面板，给棋盘更大空间。
